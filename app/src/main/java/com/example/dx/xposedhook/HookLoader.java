@@ -1,7 +1,6 @@
 package com.example.dx.xposedhook;
 
 import android.os.Build;
-import android.support.annotation.RequiresApi;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -10,7 +9,6 @@ import java.lang.reflect.Method;
 
 import dalvik.system.PathClassLoader;
 import de.robv.android.xposed.IXposedHookLoadPackage;
-import de.robv.android.xposed.IXposedHookZygoteInit;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
@@ -21,10 +19,10 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  * Created by DX on 2017/10/4.
  */
 
-public class Hook implements IXposedHookLoadPackage {
+public class HookLoader implements IXposedHookLoadPackage {
     //新建hook模块时，需要按照实际情况修改下面三项的值
     private String thisAppPackage = "com.example.dx.xposedhook";
-    private String handleHookClass = HandleHookClass.class.getName();
+    private String handleHookClass = HookLogic.class.getName();
     private String handleHookMethod = "handleLoadPackage";
 
     @Override
