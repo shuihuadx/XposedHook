@@ -26,7 +26,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  */
 
 public class HookLoader implements IXposedHookLoadPackage {
-    //新建hook模块时，需要按照实际情况修改下面几项的值
+    //按照实际使用情况修改下面几项的值
     /**
      * 该模块的包名,方便寻找apk文件
      */
@@ -37,18 +37,18 @@ public class HookLoader implements IXposedHookLoadPackage {
     private static List<String> hostAppPackages = new ArrayList<>();
 
     static {
-        // TODO: Add your want to hook package name
+        // TODO: Add the package name of application your want to hook!
         hostAppPackages.add("xxx.xxx.xxx");
     }
 
     /**
      * 实际hook逻辑处理类
      */
-    private String handleHookClass = HookLogic.class.getName();
+    private final String  handleHookClass = HookLogic.class.getName();
     /**
      * 实际hook逻辑处理类的入口方法
      */
-    private String handleHookMethod = "handleLoadPackage";
+    private final String handleHookMethod = "handleLoadPackage";
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam loadPackageParam) throws Throwable {
