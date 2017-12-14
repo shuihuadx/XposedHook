@@ -6,4 +6,7 @@
 - 自己写一个方法,将所有Hook逻辑直接或者间接的包含进来,作为"程序的入口"。  
 - 这里通过读取包含"hook逻辑"的apk文件，然后new一个PathClassLoader，该PathClassLoader用于加载包含"hook处理逻辑"的类，最后使用反射的方式进入到"程序的入口"。
 - 由于这里是动态加载的"hook逻辑"，所以不需要每次都重启设备，仅仅在第一次需要重启。
-- 虽然不用每次都重启设备了，不过由于Xposed实现机制的原因（*handleLoadPackage方法的被调用时机的问题*），需要杀死宿主程序后，并重新启动宿主程序才能生效。
+- 虽然不用每次都重启设备了，不过由于Xposed实现机制的原因（*handleLoadPackage方法的被调用时机的问题*），需要杀死宿主程序后，并重新启动宿主程序才能生效。  
+
+## 注意  
+如果XposedInstaller的log中提示未找到apk文件之类的错误,请首先检查thisModulePackage是否设置正确需要与build.gradle中的applicationId值对应,如果build.gradle中没有配置applicationId,就与AndroidManifest.xml的package值对应.
