@@ -10,11 +10,11 @@
 
 ## 注意  
 1. 该项目使用的是XposedBridgeApi-54.jar开发的.   
-2. 许根据实际情况修改HookLoader类中以下各项值
+2. 须根据实际情况修改HookLoader类中以下各项值
 ```java
-	//按照实际使用情况修改下面几项的值
+    //按照实际使用情况修改下面几项的值
     /**
-     * 该模块的包名,方便寻找apk文件
+     * 当前Xposed模块的包名,方便寻找apk文件
      */
     private final String thisModulePackage = "com.example.xposedhook";
     /**

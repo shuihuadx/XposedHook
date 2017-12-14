@@ -28,7 +28,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 public class HookLoader implements IXposedHookLoadPackage {
     //按照实际使用情况修改下面几项的值
     /**
-     * 该模块的包名,方便寻找apk文件
+     * 当前Xposed模块的包名,方便寻找apk文件
      */
     private final String thisModulePackage = "com.example.xposedhook";
     /**
