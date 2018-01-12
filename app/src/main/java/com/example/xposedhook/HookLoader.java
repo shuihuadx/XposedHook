@@ -2,6 +2,7 @@ package com.example.xposedhook;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Build;
 
 import java.io.File;
@@ -30,7 +31,7 @@ public class HookLoader implements IXposedHookLoadPackage {
     /**
      * 当前Xposed模块的包名,方便寻找apk文件
      */
-    private final String thisModulePackage = "com.example.xposedhook";
+    private final String modulePackage = "com.example.xposedhook";
     /**
      * 宿主程序的包名(允许多个),过滤无意义的包名,防止无意义的apk文件加载
      */
@@ -44,7 +45,7 @@ public class HookLoader implements IXposedHookLoadPackage {
     /**
      * 实际hook逻辑处理类
      */
-    private final String  handleHookClass = HookLogic.class.getName();
+    private final String handleHookClass = HookLogic.class.getName();
     /**
      * 实际hook逻辑处理类的入口方法
      */
@@ -57,8 +58,9 @@ public class HookLoader implements IXposedHookLoadPackage {
             XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    loadPackageParam.classLoader = ((Context) param.args[0]).getClassLoader();
-                    invokeHandleHookMethod(thisModulePackage, handleHookClass, handleHookMethod, loadPackageParam);
+                    Context context=(Context) param.args[0];
+                    loadPackageParam.classLoader = context.getClassLoader();
+                    invokeHandleHookMethod(context,modulePackage, handleHookClass, handleHookMethod, loadPackageParam);
                 }
             });
         }
@@ -67,38 +69,63 @@ public class HookLoader implements IXposedHookLoadPackage {
     /**
      * 安装app以后，系统会在/data/app/下备份了一份.apk文件，通过动态加载这个apk文件，调用相应的方法
      * 这样就可以实现，只需要第一次重启，以后修改hook代码就不用重启了
-     *
-     * @param thisAppPackage   当前app的packageName
-     * @param handleHookClass  指定由哪一个类处理相关的hook逻辑
-     * @param loadPackageParam 传入XC_LoadPackage.LoadPackageParam参数
+     * @param context context参数
+     * @param modulePackageName 当前模块的packageName
+     * @param handleHookClass   指定由哪一个类处理相关的hook逻辑
+     * @param loadPackageParam  传入XC_LoadPackage.LoadPackageParam参数
      * @throws Throwable 抛出各种异常,包括具体hook逻辑的异常,寻找apk文件异常,反射加载Class异常等
      */
-    private void invokeHandleHookMethod(String thisAppPackage, String handleHookClass, String handleHookMethodName, XC_LoadPackage.LoadPackageParam loadPackageParam) throws Throwable {
-//        File apkFile = findApkFileBySDK(thisAppPackage);//会受其它Xposed模块hook 当前宿主程序的SDK_INT的影响
-        File apkFile = findApkFile(thisAppPackage);
+    private void invokeHandleHookMethod(Context context,String modulePackageName, String handleHookClass, String handleHookMethod, XC_LoadPackage.LoadPackageParam loadPackageParam) throws Throwable {
+//        File apkFile = findApkFileBySDK(modulePackageName);//会受其它Xposed模块hook 当前宿主程序的SDK_INT的影响
+//        File apkFile = findApkFile(modulePackageName);
+        //原来的两种方式不是很好,改用这种新的方式
+        File apkFile=findApkFile(context,modulePackageName);
+        if (apkFile==null){
+            throw new RuntimeException("寻找模块apk失败");
+        }
         //加载指定的hook逻辑处理类，并调用它的handleHook方法
         PathClassLoader pathClassLoader = new PathClassLoader(apkFile.getAbsolutePath(), ClassLoader.getSystemClassLoader());
         Class<?> cls = Class.forName(handleHookClass, true, pathClassLoader);
         Object instance = cls.newInstance();
-        Method method = cls.getDeclaredMethod(handleHookMethodName, XC_LoadPackage.LoadPackageParam.class);
+        Method method = cls.getDeclaredMethod(handleHookMethod, XC_LoadPackage.LoadPackageParam.class);
         method.invoke(instance, loadPackageParam);
     }
 
     /**
+     * 根据包名构建目标Context,并调用getPackageCodePath()来定位apk
+     * @param context context参数
+     * @param modulePackageName 当前模块包名
+     * @return return apk file
+     */
+    private File findApkFile(Context context,String modulePackageName){
+        if (context==null){
+            return null;
+        }
+        try {
+            Context moudleContext = context.createPackageContext(modulePackageName, Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY);
+            String apkPath=moudleContext.getPackageCodePath();
+            return new File(apkPath);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    /**
      * 寻找这个Android设备上的当前apk文件,不受其它Xposed模块hook SDK_INT的影响
      *
-     * @param thisAppPackage 当前模块包名
+     * @param modulePackageName 当前模块包名
      * @return File 返回apk文件
      * @throws FileNotFoundException 在/data/app/下的未找到本模块apk文件,请检查本模块包名配置是否正确.
      *                               具体检查build.gradle中的applicationId和AndroidManifest.xml中的package
      */
-    private File findApkFile(String thisAppPackage) throws FileNotFoundException {
+    @Deprecated
+    private File findApkFile(String modulePackageName) throws FileNotFoundException {
         File apkFile = null;
         try {
-            apkFile = findApkFileAfterSDK21(thisAppPackage);
+            apkFile = findApkFileAfterSDK21(modulePackageName);
         } catch (Exception e) {
             try {
-                apkFile = findApkFileBeforeSDK21(thisAppPackage);
+                apkFile = findApkFileBeforeSDK21(modulePackageName);
             } catch (Exception e2) {
                 //忽略这个异常
             }
@@ -108,23 +135,23 @@ public class HookLoader implements IXposedHookLoadPackage {
         }
         return apkFile;
     }
-
     /**
      * 根据当前的SDK_INT寻找这个Android设备上的当前apk文件
      *
-     * @param thisAppPackage 当前模块包名
+     * @param modulePackageName 当前模块包名
      * @return File 返回apk文件
      * @throws FileNotFoundException 在/data/app/下的未找到本模块apk文件,请检查本模块包名配置是否正确.
      *                               具体检查build.gradle中的applicationId和AndroidManifest.xml中的package
      */
-    private File findApkFileBySDK(String thisAppPackage) throws FileNotFoundException {
+    @Deprecated
+    private File findApkFileBySDK(String modulePackageName) throws FileNotFoundException {
         File apkFile;
         //当前Xposed模块hook了Build.VERSION.SDK_INT不用担心，因为这是发生在hook之前，不会有影响
         //但是其它的Xposed模块hook了当前宿主的这个值以后，就会有影响了,所以这里没有使用这个方法
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            apkFile = findApkFileAfterSDK21(thisAppPackage);
+            apkFile = findApkFileAfterSDK21(modulePackageName);
         } else {
-            apkFile = findApkFileBeforeSDK21(thisAppPackage);
+            apkFile = findApkFileBeforeSDK21(modulePackageName);
         }
         return apkFile;
     }
@@ -137,6 +164,7 @@ public class HookLoader implements IXposedHookLoadPackage {
      * @return File 返回apk文件
      * @throws FileNotFoundException apk文件未找到
      */
+    @Deprecated
     private File findApkFileAfterSDK21(String packageName) throws FileNotFoundException {
         File apkFile;
         File path = new File(String.format("/data/app/%s-%s", packageName, "1"));
@@ -160,6 +188,7 @@ public class HookLoader implements IXposedHookLoadPackage {
      * @return File 返回apk文件
      * @throws FileNotFoundException apk文件未找到
      */
+    @Deprecated
     private File findApkFileBeforeSDK21(String packageName) throws FileNotFoundException {
         File apkFile = new File(String.format("/data/app/%s-%s.apk", packageName, "1"));
         if (!apkFile.exists()) {
