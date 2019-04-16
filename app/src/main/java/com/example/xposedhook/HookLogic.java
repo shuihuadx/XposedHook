@@ -1,7 +1,10 @@
 package com.example.xposedhook;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
+import de.robv.android.xposed.IXposedHookZygoteInit;
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XSharedPreferences;
+import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
@@ -13,7 +16,10 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  * Created by DX on 2017/10/4.
  */
 
-public class HookLogic implements IXposedHookLoadPackage {
+public class HookLogic implements IXposedHookLoadPackage, IXposedHookZygoteInit {
+    private final static String modulePackageName = HookLogic.class.getPackage().getName();
+    private XSharedPreferences sharedPreferences;
+
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam loadPackageParam) throws Throwable {
         if ("xxx.xxx.xxx".equals(loadPackageParam.packageName)){
@@ -21,8 +27,17 @@ public class HookLogic implements IXposedHookLoadPackage {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     param.setResult("Hook succeed");
+                    int x=sharedPreferences.getInt("example",1);
                 }
             });
         }
+    }
+
+    @Override
+    public void initZygote(IXposedHookZygoteInit.StartupParam startupParam) {
+        this.sharedPreferences = new XSharedPreferences(modulePackageName, "default");
+        sharedPreferences.makeWorldReadable();
+        sharedPreferences.reload();
+        XposedBridge.log(modulePackageName+" initZygote");
     }
 }
