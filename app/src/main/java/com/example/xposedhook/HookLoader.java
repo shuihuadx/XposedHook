@@ -51,12 +51,9 @@ public class HookLoader implements IXposedHookLoadPackage, IXposedHookZygoteInit
      */
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam loadPackageParam) throws Throwable {
-        if (loadPackageParam.appInfo == null) {
-            XposedBridge.log(loadPackageParam.packageName + " appInfo is null, ignore");
-            return;
-        }
         // 排除系统应用
-        if ((loadPackageParam.appInfo.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 1) {
+        if (loadPackageParam.appInfo == null ||
+                (loadPackageParam.appInfo.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 1) {
             return;
         }
         //将loadPackageParam的classloader替换为宿主程序Application的classloader,解决宿主程序存在多个.dex文件时,有时候ClassNotFound的问题
@@ -67,7 +64,11 @@ public class HookLoader implements IXposedHookLoadPackage, IXposedHookZygoteInit
                 loadPackageParam.classLoader = context.getClassLoader();
                 Class<?> cls = getApkClass(context, modulePackageName, handleHookClass);
                 Object instance = cls.newInstance();
-                cls.getDeclaredMethod(initMethod, startupparam.getClass()).invoke(instance, startupparam);
+                try {
+                    cls.getDeclaredMethod(initMethod, startupparam.getClass()).invoke(instance, startupparam);
+                }catch (NoSuchMethodException e){
+                    // 找不到initZygote方法
+                }
                 cls.getDeclaredMethod(handleHookMethod, loadPackageParam.getClass()).invoke(instance, loadPackageParam);
             }
         });
