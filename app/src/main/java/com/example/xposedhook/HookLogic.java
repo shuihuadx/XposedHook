@@ -36,8 +36,6 @@ public class HookLogic implements IXposedHookLoadPackage, IXposedHookZygoteInit 
     @Override
     public void initZygote(IXposedHookZygoteInit.StartupParam startupParam) {
         this.sharedPreferences = new XSharedPreferences(modulePackageName, "default");
-        sharedPreferences.makeWorldReadable();
-        sharedPreferences.reload();
         XposedBridge.log(modulePackageName+" initZygote");
     }
 }
