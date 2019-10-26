@@ -8,32 +8,13 @@
 - 由于这里是动态加载的"hook逻辑"，所以不需要每次都重启设备，仅仅在第一次需要重启。
 - 虽然不用每次都重启设备了，不过由于Xposed实现机制的原因（*handleLoadPackage方法的被调用时机的问题*），需要杀死宿主程序后，并重新启动宿主程序才能生效。  
 
-## 注意  
-1. 该项目使用的是XposedBridgeApi-54.jar开发的.   
-2. 须根据实际情况修改HookLoader类中以下各项值
-```java
-    //按照实际使用情况修改下面几项的值
-    /**
-     * 当前Xposed模块的包名,方便寻找apk文件
-     */
-    private final String thisModulePackage = "com.example.xposedhook";
-    /**
-     * 宿主程序的包名(允许多个),过滤无意义的包名,防止无意义的apk文件加载
-     */
-    private static List<String> hostAppPackages = new ArrayList<>();
-
-    static {
-        // TODO: Add the package name of application your want to hook!
-        hostAppPackages.add("xxx.xxx.xxx");
-    }
-
-    /**
-     * 实际hook逻辑处理类
-     */
-    private final String handleHookClass = HookLogic.class.getName();
-    /**
-     * 实际hook逻辑处理类的入口方法
-     */
-    private final String handleHookMethod = "handleLoadPackage";
+## 用法  
+1. 复制`HookLoader.java`到自己的模块代码中
+2. 修正`HookLoader.java`包名`com.example.dx.xposedhook`为自己的包名
+3. 修改`HookLogic`为自己模块的Hook逻辑处理类
 ```
-3. 如果XposedInstaller的log中提示未找到apk文件之类的错误,请首先检查thisModulePackage是否设置正确需要与build.gradle中的applicationId值对应,如果build.gradle中没有配置applicationId,就与AndroidManifest.xml的package值对应.
+    // 实际hook逻辑处理类
+    private final String hookLogicClassName = HookLogic.class.getName();
+``` 
+4. 修改`xposed_init`指向`HookLoader`, 调试完后可以改回原来的Hook逻辑处理类
+

@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">XposedHook</string>
+    <string name="app_name">Bootless Xposed</string>
+    <string name="action_settings">Settings</string>
 </resources>
